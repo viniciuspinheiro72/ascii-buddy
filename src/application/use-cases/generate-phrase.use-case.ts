@@ -17,7 +17,7 @@ export class GeneratePhraseUseCase {
 
   async execute(ctx: PhraseContext): Promise<GeneratePhraseResult> {
     if (!this.aiProvider) {
-      return { phrase: FallbackPhraseStore.getRandom(), offline: true };
+      return { phrase: FallbackPhraseStore.getByType(ctx.phraseType), offline: true };
     }
 
     try {
@@ -32,7 +32,7 @@ export class GeneratePhraseUseCase {
       return { phrase, offline: false };
     } catch (err) {
       logger.error(`AI phrase generation failed: ${String(err)}`);
-      return { phrase: FallbackPhraseStore.getRandom(), offline: true };
+      return { phrase: FallbackPhraseStore.getByType(ctx.phraseType), offline: true };
     }
   }
 }

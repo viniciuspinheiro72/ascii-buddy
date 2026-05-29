@@ -10,10 +10,12 @@ import { logger } from "@/infra/logger.js";
 import type { GeneratePhraseResult } from "@/application/use-cases/generate-phrase.use-case.js";
 
 const BUDDY_BOX_WIDTH = 17;
-const PHRASE_INTERVAL_MS = 30_000;
 const THINKING_DELAY_MS = 500;
 const MIN_WIDTH_FULL = 60;
 const MIN_WIDTH_RENDER = 40;
+const MOOD_LINGER_MS = 5_000;
+const SLEEP_IDLE_MS = 10 * 60 * 1000;
+const MOOD_CHECK_INTERVAL_MS = 60_000;
 
 export class CompanionScreen {
   private screen!: blessed.Widgets.Screen;
@@ -22,14 +24,17 @@ export class CompanionScreen {
   private statusBar!: StatusBar;
   private animationLoop!: AnimationLoop;
   private phraseTimer: ReturnType<typeof setInterval> | null = null;
+  private moodCheckTimer: ReturnType<typeof setInterval> | null = null;
   private currentMood: Mood;
   private isOffline = false;
   private destroyed = false;
+  private lastActivityAt = new Date();
 
   constructor(
     private buddy: Buddy,
     private readonly template: BuddyTemplate,
     private readonly getPhrase: () => Promise<GeneratePhraseResult>,
+    private readonly phraseIntervalMs: number = 30_000,
   ) {
     this.currentMood = buddy.mood;
   }
@@ -52,6 +57,7 @@ export class CompanionScreen {
     this.bindKeys();
     this.startAnimation();
     this.schedulePhraseLoop();
+    this.startMoodCheckLoop();
 
     this.screen.render();
 
@@ -68,6 +74,10 @@ export class CompanionScreen {
     if (this.phraseTimer !== null) {
       clearInterval(this.phraseTimer);
       this.phraseTimer = null;
+    }
+    if (this.moodCheckTimer !== null) {
+      clearInterval(this.moodCheckTimer);
+      this.moodCheckTimer = null;
     }
     this.screen.destroy();
   }
@@ -146,7 +156,7 @@ export class CompanionScreen {
 
     this.updateStatusBar();
 
-    // Rebuild on resize
+    // Rebuild on resize (debounced 150ms — PITFALLS.md)
     this.screen.on("resize", () => {
       setTimeout(() => {
         if (!this.destroyed) {
@@ -184,7 +194,7 @@ export class CompanionScreen {
       padding: { left: 1, right: 0, top: 1, bottom: 0 },
     });
 
-    // Stub implementations so the class invariants hold
+    // Stub implementations so class invariants hold
     this.speechBubble = new SpeechBubble(this.screen, {
       top: 15,
       left: 0,
@@ -201,7 +211,16 @@ export class CompanionScreen {
     });
 
     this.screen.key(["n"], () => {
+      this.recordActivity();
       void this.triggerPhrase();
+    });
+
+    // Any keypress resets the sleep idle timer
+    this.screen.on("keypress", () => {
+      this.recordActivity();
+      if (this.currentMood === Mood.SLEEPING) {
+        this.setMood(Mood.IDLE);
+      }
     });
   }
 
@@ -224,6 +243,11 @@ export class CompanionScreen {
   }
 
   private async triggerPhrase(): Promise<void> {
+    // Wake from sleep if needed
+    if (this.currentMood === Mood.SLEEPING) {
+      this.setMood(Mood.IDLE);
+    }
+
     this.setMood(Mood.TALKING);
     this.speechBubble.showThinking();
 
@@ -234,23 +258,44 @@ export class CompanionScreen {
       this.isOffline = offline;
       this.speechBubble.show(phrase);
       this.updateStatusBar();
+
+      // HAPPY after online phrase, SAD after offline — both linger then return to IDLE
+      const nextMood = offline ? Mood.SAD : Mood.HAPPY;
+      this.setMood(nextMood);
     } catch (err) {
       logger.error(`Failed to get phrase: ${String(err)}`);
       this.isOffline = true;
       this.speechBubble.show("...I got nothing. Try again.");
       this.updateStatusBar();
+      this.setMood(Mood.SAD);
     }
 
-    // Return to idle after speech bubble auto-clears (8s)
     setTimeout(() => {
-      if (!this.destroyed) this.setMood(Mood.IDLE);
-    }, 8_500);
+      if (!this.destroyed && this.currentMood !== Mood.SLEEPING) {
+        this.setMood(Mood.IDLE);
+      }
+    }, MOOD_LINGER_MS);
   }
 
   private schedulePhraseLoop(): void {
     this.phraseTimer = setInterval(() => {
       if (!this.destroyed) void this.triggerPhrase();
-    }, PHRASE_INTERVAL_MS);
+    }, this.phraseIntervalMs);
+  }
+
+  private startMoodCheckLoop(): void {
+    this.moodCheckTimer = setInterval(() => {
+      if (this.destroyed) return;
+      if (this.currentMood !== Mood.IDLE) return;
+      const idleMs = Date.now() - this.lastActivityAt.getTime();
+      if (idleMs >= SLEEP_IDLE_MS) {
+        this.setMood(Mood.SLEEPING);
+      }
+    }, MOOD_CHECK_INTERVAL_MS);
+  }
+
+  private recordActivity(): void {
+    this.lastActivityAt = new Date();
   }
 
   private updateStatusBar(): void {
