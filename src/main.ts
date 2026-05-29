@@ -1,9 +1,12 @@
 import { LocalStorageAdapter } from "@/infra/storage/local-storage-adapter.js";
 import { BundledTemplateRegistry } from "@/infra/templates/bundled-template-registry.js";
-import { FallbackPhraseStore } from "@/infra/ai/fallback-phrase-store.js";
+import { GeminiAdapter } from "@/infra/ai/gemini-adapter.js";
+import { resolveApiKey } from "@/infra/storage/config-reader.js";
 import { LoadBuddyUseCase } from "@/application/use-cases/load-buddy.use-case.js";
+import { GeneratePhraseUseCase } from "@/application/use-cases/generate-phrase.use-case.js";
 import { CompanionScreen } from "@/ui/screens/companion-screen.js";
 import { Buddy } from "@/domain/entities/buddy.js";
+import { randomPhraseType } from "@/domain/value-objects/phrase-context.js";
 import { logger } from "@/infra/logger.js";
 
 async function main(): Promise<void> {
@@ -11,14 +14,24 @@ async function main(): Promise<void> {
   const buddyRepository = new LocalStorageAdapter();
   const templateRegistry = new BundledTemplateRegistry();
 
+  const apiKey = await resolveApiKey();
+  const aiProvider = apiKey ? new GeminiAdapter(apiKey) : null;
+
+  if (!apiKey) {
+    process.stdout.write(
+      "No GEMINI_API_KEY found — running in offline mode (fallback phrases only).\n",
+    );
+  }
+
   const loadBuddy = new LoadBuddyUseCase(buddyRepository, templateRegistry);
+  const generatePhrase = new GeneratePhraseUseCase(aiProvider, buddyRepository);
+
   let result = await loadBuddy.execute();
 
   if (!result) {
-    // Phase 2 demo: show a temporary buddy so the TUI can be tested.
-    // In Phase 4 this path becomes: print a message and run --new.
+    // No active buddy yet — demo mode until Phase 4 adds --new
     process.stdout.write(
-      "No buddy found — loading demo mode (use --new in Phase 4 to create one).\n",
+      "No buddy found — loading demo mode (run with --new in Phase 4 to create one).\n",
     );
 
     const demoBuddy = Buddy.create(
@@ -35,9 +48,13 @@ async function main(): Promise<void> {
 
   const { buddy, template } = result;
 
-  // Phase 2: phrases come from the fallback store.
-  // Phase 3 will replace this with the Gemini adapter.
-  const getPhrase = async (): Promise<string> => FallbackPhraseStore.getRandom();
+  const getPhrase = async () =>
+    generatePhrase.execute({
+      buddyName: buddy.name,
+      buddyTalent: buddy.talent,
+      buddyDescription: buddy.description,
+      phraseType: randomPhraseType(),
+    });
 
   const screen = new CompanionScreen(buddy, template, getPhrase);
 
