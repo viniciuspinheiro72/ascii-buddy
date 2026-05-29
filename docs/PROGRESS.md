@@ -25,9 +25,10 @@
 - [ ] Scaffold full `src/` directory tree (empty files)
 - [ ] `Buddy` entity with `Buddy.create(metadata)` factory
 - [ ] All value objects: `BuddyTemplate`, `Mood` enum, `MoodState` type, `PhraseContext`, `PhraseType`, `BuddyMetadata`
-- [ ] `AIProvider` and `BuddyRepository` port interfaces
+- [ ] `AIProvider`, `BuddyRepository`, and `TemplateRegistry` port interfaces
 - [ ] `LocalStorageAdapter` with atomic write + backup recovery
 - [ ] `schema.ts`: `StorageSchema` + `ConfigSchema` types
+- [ ] `BundledTemplateRegistry` adapter (reads from `src/assets/buddies/`)
 - [ ] Domain + storage adapter unit/integration tests
 - [ ] Animation PoC spike: neo-blessed multi-frame loop at 2fps with resize handler
 

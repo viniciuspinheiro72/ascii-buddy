@@ -4,7 +4,7 @@
      It is the first doc read each session to restore project state. -->
 
 ## Current Focus
-Project just initialized — all documentation scaffolded. Ready to begin Phase 1: Foundation (repo setup, tsconfig, domain model, ports, storage adapter, animation PoC).
+Docs updated with TemplateRegistry port/adapter design. Starting Phase 1: Foundation — package.json, tsconfig, domain model (Buddy entity, all value objects, all three ports including TemplateRegistry), storage adapter, BundledTemplateRegistry, and animation PoC spike.
 
 ## In Progress
 - Nothing yet — docs complete, code not started

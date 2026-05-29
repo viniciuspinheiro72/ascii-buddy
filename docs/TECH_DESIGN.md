@@ -120,13 +120,20 @@ BuddyRepository     save(buddy: Buddy): Promise<void>
                     findAll(): Promise<Buddy[]>
                     setActive(id: string): Promise<void>
                     getActive(): Promise<Buddy | null>
+
+TemplateRegistry    getTemplate(speciesId: string): Promise<BuddyTemplate>
+                    listAvailable(): Promise<SpeciesMeta[]>
+                    prefetch(speciesId: string): Promise<void>
 ```
 
 ### Infrastructure Adapters
 ```
-GeminiAdapter       implements AIProvider — calls @google/generative-ai
-LocalStorageAdapter implements BuddyRepository — atomic JSON read/write
-FallbackPhraseStore static array of 50+ hardcoded dev phrases (offline mode)
+GeminiAdapter           implements AIProvider — calls @google/generative-ai
+LocalStorageAdapter     implements BuddyRepository — atomic JSON read/write
+FallbackPhraseStore     static array of 50+ hardcoded dev phrases (offline mode)
+BundledTemplateRegistry implements TemplateRegistry — reads from src/assets/buddies/ (v1)
+RemoteTemplateRegistry  implements TemplateRegistry — fetches from remote registry,
+                        caches in ~/.ascii-buddy/templates/ (v2, not yet built)
 ```
 
 ### Application Use Cases

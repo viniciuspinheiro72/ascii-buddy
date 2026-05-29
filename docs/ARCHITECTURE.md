@@ -18,7 +18,8 @@ ascii-buddy/
 │   │   │   └── buddy-metadata.ts      ← AI-generated metadata shape
 │   │   └── ports/
 │   │       ├── ai-provider.ts         ← AIProvider interface
-│   │       └── buddy-repository.ts    ← BuddyRepository interface
+│   │       ├── buddy-repository.ts    ← BuddyRepository interface
+│   │       └── template-registry.ts   ← TemplateRegistry interface
 │   ├── application/                   ← Use cases — depends on domain ports only
 │   │   └── use-cases/
 │   │       ├── load-buddy.use-case.ts
@@ -31,9 +32,12 @@ ascii-buddy/
 │   │   │   ├── gemini-adapter.ts      ← implements AIProvider
 │   │   │   ├── gemini-system-prompt.ts← System prompt template function
 │   │   │   └── fallback-phrase-store.ts← Offline fallback phrases
-│   │   └── storage/
-│   │       ├── local-storage-adapter.ts← implements BuddyRepository
-│   │       └── schema.ts              ← StorageSchema + ConfigSchema types
+│   │   ├── storage/
+│   │   │   ├── local-storage-adapter.ts← implements BuddyRepository
+│   │   │   └── schema.ts              ← StorageSchema + ConfigSchema types
+│   │   └── templates/
+│   │       ├── bundled-template-registry.ts ← implements TemplateRegistry (v1)
+│   │       └── remote-template-registry.ts  ← implements TemplateRegistry (v2, future)
 │   ├── ui/                            ← TUI layer (neo-blessed)
 │   │   ├── screens/
 │   │   │   ├── companion-screen.ts    ← Main buddy view
@@ -116,6 +120,7 @@ main.ts
 | New use case | `src/application/use-cases/` |
 | New AI provider adapter | `src/infra/ai/` — implement `AIProvider` port |
 | New storage adapter | `src/infra/storage/` — implement `BuddyRepository` port |
+| New template registry adapter | `src/infra/templates/` — implement `TemplateRegistry` port |
 | New TUI screen | `src/ui/screens/` |
 | New TUI component | `src/ui/components/` |
 | New buddy species ASCII frames | `src/assets/buddies/` |

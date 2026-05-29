@@ -155,6 +155,47 @@
 
 ---
 
+## TemplateRegistry
+- **Definition:** The domain port (interface) for resolving a `BuddyTemplate` from a species ID. Abstracts whether templates come from bundled source code (v1) or a remote registry (v2). The domain never imports a concrete implementation.
+- **NOT:** A database, a file system module, or a remote API client. It is a pure TypeScript interface in the domain layer.
+- **Synonyms to avoid:** `TemplateStore`, `TemplateService`, `TemplateLoader` — use `TemplateRegistry` for the port.
+- **Bounded context:** companion
+- **Code name:** `TemplateRegistry` (interface in `src/domain/ports/template-registry.ts`)
+- **Related terms:** BuddyTemplate, Species, BundledTemplateRegistry, SpeciesMeta
+- **Example:** "`LoadBuddyUseCase` calls `templateRegistry.getTemplate(buddy.species)` — it has no knowledge of where templates are stored."
+
+---
+
+## SpeciesMeta
+- **Definition:** A lightweight value object returned by `TemplateRegistry.listAvailable()`. Contains only the metadata needed to display a species in the picker (id, display name, description) — not the full frame arrays.
+- **NOT:** A BuddyTemplate. SpeciesMeta has no animation frames — it is a catalogue entry only.
+- **Bounded context:** companion
+- **Code name:** `SpeciesMeta` (interface/type): `{ id: string, displayName: string, description: string }`
+- **Related terms:** TemplateRegistry, BuddyTemplate, Species
+- **Example:** The buddy picker calls `listAvailable()` to show a species list; only when the user selects one does it call `getTemplate()` to load the full frames.
+
+---
+
+## BundledTemplateRegistry
+- **Definition:** The v1 concrete adapter implementing `TemplateRegistry`. Resolves templates by importing from `src/assets/buddies/` — all templates are bundled with the app binary. No network calls, fully offline.
+- **NOT:** A permanent solution. It is the starting adapter, replaced or supplemented by `RemoteTemplateRegistry` in v2.
+- **Bounded context:** companion (infra layer)
+- **Code name:** `BundledTemplateRegistry` (class in `src/infra/templates/bundled-template-registry.ts`)
+- **Related terms:** TemplateRegistry, RemoteTemplateRegistry, BuddyTemplate
+- **Example:** "In v1, `main.ts` wires `BundledTemplateRegistry` as the `TemplateRegistry` — new species require a new app release."
+
+---
+
+## RemoteTemplateRegistry
+- **Definition:** The v2 concrete adapter implementing `TemplateRegistry`. Fetches templates from a remote registry (GitHub raw files or CDN), caches them in `~/.ascii-buddy/templates/`. Falls back to bundled templates if network is unavailable.
+- **NOT:** Built yet — this is a planned v2 adapter. The port exists; the adapter does not.
+- **Bounded context:** companion (infra layer)
+- **Code name:** `RemoteTemplateRegistry` (class in `src/infra/templates/remote-template-registry.ts`)
+- **Related terms:** TemplateRegistry, BundledTemplateRegistry, BuddyTemplate
+- **Example:** "In v2, swapping `BundledTemplateRegistry` for `RemoteTemplateRegistry` in `main.ts` enables community-contributed species without a new app release."
+
+---
+
 ## AnimationLoop
 - **Definition:** The TUI-layer mechanism (a `setInterval` wrapper) that steps through a BuddyTemplate's frame array for the current Mood and re-renders the buddy box on each tick.
 - **NOT:** A domain concept — it lives in `src/ui/`. Listed here because it is referenced across layers.

@@ -15,6 +15,12 @@
 
 ---
 
+### 2026-05-28 — TemplateRegistry port added; v1 ships with BundledTemplateRegistry
+- **Decision:** Introduce a `TemplateRegistry` port (interface) in the domain layer with three adapters planned: `BundledTemplateRegistry` (v1, reads from `src/assets/buddies/`), `RemoteTemplateRegistry` (v2, fetches from remote registry + local cache), and a future `HybridTemplateRegistry`. v1 ships with bundled only.
+- **Why:** Templates bundled in the binary require a new app release for every new species. A port/adapter design lets v2 serve templates from a remote registry (GitHub repo + raw URLs) with zero domain changes — same pattern as the AIProvider swap. Building the remote adapter now would block Phase 1 with infrastructure that has zero users; the port alone is 10 lines.
+- **Alternatives considered:** Always bundled (no extensibility); remote-only from day one (blocks shipping, requires infra); plugin loader (overkill).
+- **Consequences:** `TemplateRegistry` is a first-class domain port alongside `AIProvider` and `BuddyRepository`. `main.ts` wires `BundledTemplateRegistry` in v1. Adding new species in v1 still requires a release — acceptable until there are real users requesting community templates.
+
 ### 2026-05-28 — ASCII buddy visuals are pre-designed template files, not AI-generated
 - **Decision:** Buddy ASCII art is stored as curated TypeScript frame arrays in `src/assets/buddies/`. The AI generates personality metadata only (name, description, talent).
 - **Why:** LLMs produce inconsistent ASCII art — quality varies wildly, output can't be animated, and it wastes tokens on every buddy creation. Pre-designed frames guarantee consistent quality, support multi-frame animation, and are zero-cost at runtime.
