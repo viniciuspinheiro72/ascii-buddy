@@ -5,7 +5,7 @@ import type { BuddyMetadata } from "@/domain/value-objects/buddy-metadata.js";
 import { buildPhrasePrompt, buildMetadataPrompt } from "@/infra/ai/gemini-system-prompt.js";
 import { logger } from "@/infra/logger.js";
 
-const DEFAULT_MODEL = "gemini-1.5-flash";
+const DEFAULT_MODEL = "gemini-2.0-flash";
 const MAX_PHRASE_LENGTH = 120;
 
 export class GeminiAdapter implements AIProvider {
