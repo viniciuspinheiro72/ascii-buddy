@@ -5,7 +5,6 @@ import { Buddy } from "@/domain/entities/buddy.js";
 import { Mood } from "@/domain/value-objects/mood.js";
 import type { BuddyRepository } from "@/domain/ports/buddy-repository.js";
 import {
-  EMPTY_STORAGE,
   SCHEMA_VERSION,
   type BuddyRecord,
   type StorageSchema,

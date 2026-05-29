@@ -99,7 +99,7 @@ export class BuddyPickerScreen {
 
     this.screen.key(["enter"], () => {
       if (this.confirmOpen) return;
-      const idx = this.list.selected as number;
+      const idx = (this.list as unknown as { selected: number }).selected;
       const buddy = this.buddies[idx];
       if (buddy) {
         this.close();
@@ -109,7 +109,7 @@ export class BuddyPickerScreen {
 
     this.screen.key(["d"], () => {
       if (this.confirmOpen) return;
-      const idx = this.list.selected as number;
+      const idx = (this.list as unknown as { selected: number }).selected;
       const buddy = this.buddies[idx];
       if (buddy) this.showConfirm(buddy, resolve);
     });

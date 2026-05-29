@@ -127,7 +127,7 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  await openCompanion(result.buddy, result.template, generatePhrase);
+  await openCompanion(result.buddy, result.template, generatePhrase, phraseIntervalMs);
 }
 
 main().catch((err: unknown) => {
