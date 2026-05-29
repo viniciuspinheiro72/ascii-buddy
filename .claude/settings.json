@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'Session ending — before finishing: (1) update docs/ACTIVE_CONTEXT.md with what changed and what is next, (2) append to docs/DECISION_LOG.md if any significant decisions were made, (3) update docs/PROGRESS.md if work moved between Done / In Progress / Blocked.'"
+          }
+        ]
+      }
+    ]
+  }
+}

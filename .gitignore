@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.js.map
+
+# ascii-buddy runtime data (never commit user data or API keys)
+~/.ascii-buddy/
