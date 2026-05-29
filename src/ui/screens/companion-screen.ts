@@ -7,6 +7,7 @@ import { AnimationLoop, MOOD_FPS } from "@/ui/components/animation-loop.js";
 import { SpeechBubble } from "@/ui/components/speech-bubble.js";
 import { StatusBar } from "@/ui/components/status-bar.js";
 import { logger } from "@/infra/logger.js";
+import type { GeneratePhraseResult } from "@/application/use-cases/generate-phrase.use-case.js";
 
 const BUDDY_BOX_WIDTH = 17;
 const PHRASE_INTERVAL_MS = 30_000;
@@ -22,12 +23,13 @@ export class CompanionScreen {
   private animationLoop!: AnimationLoop;
   private phraseTimer: ReturnType<typeof setInterval> | null = null;
   private currentMood: Mood;
+  private isOffline = false;
   private destroyed = false;
 
   constructor(
     private buddy: Buddy,
     private readonly template: BuddyTemplate,
-    private readonly getPhrase: () => Promise<string>,
+    private readonly getPhrase: () => Promise<GeneratePhraseResult>,
   ) {
     this.currentMood = buddy.mood;
   }
@@ -228,11 +230,15 @@ export class CompanionScreen {
     await sleep(THINKING_DELAY_MS);
 
     try {
-      const phrase = await this.getPhrase();
+      const { phrase, offline } = await this.getPhrase();
+      this.isOffline = offline;
       this.speechBubble.show(phrase);
+      this.updateStatusBar();
     } catch (err) {
       logger.error(`Failed to get phrase: ${String(err)}`);
+      this.isOffline = true;
       this.speechBubble.show("...I got nothing. Try again.");
+      this.updateStatusBar();
     }
 
     // Return to idle after speech bubble auto-clears (8s)
@@ -248,7 +254,7 @@ export class CompanionScreen {
   }
 
   private updateStatusBar(): void {
-    this.statusBar.update(this.currentMood, this.buddy.name, this.buddy.lastSeenAt, false);
+    this.statusBar.update(this.currentMood, this.buddy.name, this.buddy.lastSeenAt, this.isOffline);
   }
 }
 
