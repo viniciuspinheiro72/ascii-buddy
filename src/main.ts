@@ -1,7 +1,7 @@
 import { LocalStorageAdapter } from "@/infra/storage/local-storage-adapter.js";
 import { BundledTemplateRegistry } from "@/infra/templates/bundled-template-registry.js";
 import { GeminiAdapter } from "@/infra/ai/gemini-adapter.js";
-import { resolveApiKey } from "@/infra/storage/config-reader.js";
+import { resolveConfig } from "@/infra/storage/config-reader.js";
 import { LoadBuddyUseCase } from "@/application/use-cases/load-buddy.use-case.js";
 import { CreateBuddyUseCase } from "@/application/use-cases/create-buddy.use-case.js";
 import { ListBuddiesUseCase } from "@/application/use-cases/list-buddies.use-case.js";
@@ -25,6 +25,7 @@ async function openCompanion(
   buddy: Buddy,
   template: BuddyTemplate,
   generatePhrase: GeneratePhraseUseCase,
+  phraseIntervalMs: number,
 ): Promise<void> {
   const getPhrase = async () =>
     generatePhrase.execute({
@@ -34,7 +35,7 @@ async function openCompanion(
       phraseType: randomPhraseType(),
     });
 
-  const screen = new CompanionScreen(buddy, template, getPhrase);
+  const screen = new CompanionScreen(buddy, template, getPhrase, phraseIntervalMs);
 
   try {
     screen.open();
@@ -51,8 +52,10 @@ async function main(): Promise<void> {
   const buddyRepository = new LocalStorageAdapter();
   const templateRegistry = new BundledTemplateRegistry();
 
-  const apiKey = await resolveApiKey();
+  const config = await resolveConfig();
+  const apiKey = process.env["GEMINI_API_KEY"] ?? config.apiKey ?? null;
   const aiProvider = apiKey ? new GeminiAdapter(apiKey) : null;
+  const phraseIntervalMs = config.phraseIntervalSeconds * 1_000;
 
   if (!apiKey && flag !== "list" && flag !== "delete") {
     process.stdout.write(
@@ -76,7 +79,7 @@ async function main(): Promise<void> {
     const createBuddy = new CreateBuddyUseCase(aiProvider, buddyRepository, templateRegistry);
     const { buddy, template } = await createBuddy.execute();
     process.stdout.write(`\nMeet ${buddy.name}! (${buddy.talent})\n\n`);
-    await openCompanion(buddy, template, generatePhrase);
+    await openCompanion(buddy, template, generatePhrase, phraseIntervalMs);
     return;
   }
 
@@ -109,7 +112,7 @@ async function main(): Promise<void> {
     if (!buddy) process.exit(0);
 
     const template = await templateRegistry.getTemplate(buddy.species);
-    await openCompanion(buddy, template, generatePhrase);
+    await openCompanion(buddy, template, generatePhrase, phraseIntervalMs);
     return;
   }
 
