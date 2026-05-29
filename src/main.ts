@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { LocalStorageAdapter } from "@/infra/storage/local-storage-adapter.js";
 import { BundledTemplateRegistry } from "@/infra/templates/bundled-template-registry.js";
 import { GeminiAdapter } from "@/infra/ai/gemini-adapter.js";
