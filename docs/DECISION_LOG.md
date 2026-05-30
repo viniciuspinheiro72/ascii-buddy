@@ -15,6 +15,24 @@
 
 ---
 
+### 2026-05-29 — Buddy species redesigned as floating heads
+- **Decision:** Strip body rows from both `crash` and `generic-dev` frames; each species is now a 4–5 row floating head. `BuddyTemplate.width/height` declared per-species; `CompanionScreen` derives `boxW = template.width + 4` and `boxH = template.height + 3` at construction time.
+- **Why:** Full-body ASCII art (9 rows) consumed most of the terminal height and felt heavy as a persistent widget. A floating head is compact, expressive, and leaves room for the speech bubble.
+- **Alternatives considered:** Keep full body but scale down; make body optional per template.
+- **Consequences:** Any future species must declare accurate `width` and `height` on `BuddyTemplate` — the box is sized from those values, not hardcoded. Existing 67 tests still pass.
+
+### 2026-05-29 — UI stripped to bare terminal: no borders, no header, no status bar
+- **Decision:** Remove all blessed borders, the header box, and the status bar from `CompanionScreen`. Speech text renders as plain terminal text directly beside (full mode) or below (compact/minimal) the buddy. Only the key hints footer remains as UI chrome.
+- **Why:** The previous layout felt cluttered — borders, header, and status bar competed visually with the ASCII art. The buddy and its phrase are the only content that matters.
+- **Alternatives considered:** Keep header but remove border; keep status bar inline with footer.
+- **Consequences:** `StatusBar` class is no longer used in `CompanionScreen` (file kept for potential reuse). Buddy box dimensions simplified: `boxH = template.height`, `boxW = template.width + 2`. Mood/offline state no longer displayed; could be reintroduced as a minimal footer annotation if needed.
+
+### 2026-05-29 — CompanionScreen refactored to createWidgets() + applyLayout()
+- **Decision:** Split the former `buildLayout()` into `createWidgets()` (called once on open) and `applyLayout()` (called on every resize). Added `reposition()` methods to `SpeechBubble` and `StatusBar` that mutate `position` in-place and clear blessed's `lpos` cache. Speech bubble uses `bottom`-anchored positioning in compact/minimal modes.
+- **Why:** The original resize handler called `screen.destroy()` + reset `this.destroyed = false`, which was a broken pattern — it destroyed the screen object but left timers and event listeners alive. The in-place approach keeps all bindings intact across resizes. Bottom-anchoring the speech bubble in compact/minimal modes prevents it from falling off-screen when the terminal is short.
+- **Alternatives considered:** Recreate all widgets on resize (works but flickers and loses state); fixed positions (breaks on short terminals).
+- **Consequences:** `SpeechBubble` and `StatusBar` expose `reposition()` as part of their public API. All layout logic lives in `applyLayout()` — adding a new breakpoint means touching only that method.
+
 ### 2026-05-28 — TemplateRegistry port added; v1 ships with BundledTemplateRegistry
 - **Decision:** Introduce a `TemplateRegistry` port (interface) in the domain layer with three adapters planned: `BundledTemplateRegistry` (v1, reads from `src/assets/buddies/`), `RemoteTemplateRegistry` (v2, fetches from remote registry + local cache), and a future `HybridTemplateRegistry`. v1 ships with bundled only.
 - **Why:** Templates bundled in the binary require a new app release for every new species. A port/adapter design lets v2 serve templates from a remote registry (GitHub repo + raw URLs) with zero domain changes — same pattern as the AIProvider swap. Building the remote adapter now would block Phase 1 with infrastructure that has zero users; the port alone is 10 lines.

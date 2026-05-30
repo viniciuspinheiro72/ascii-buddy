@@ -6,69 +6,19 @@
 ## Done
 - [x] 2026-05-28 — Full documentation suite scaffolded (all 13 docs + ADR-001 + CONSTITUTION + AGENTS + CLAUDE)
 - [x] 2026-05-28 — Git repository initialized on `main` branch
+- [x] 2026-05-29 — Phase 1: Foundation — tooling, domain entities, ports, storage adapter, tests
+- [x] 2026-05-29 — Phase 2: Core TUI — AnimationLoop, SpeechBubble, StatusBar, CompanionScreen, resize handling
+- [x] 2026-05-29 — Phase 3: AI Integration — GeminiAdapter, FallbackPhraseStore, GeneratePhraseUseCase, offline indicator
+- [x] 2026-05-29 — Phase 4: Buddy Lifecycle — CreateBuddyUseCase, BuddyPickerScreen, --new / --list / --delete flags
+- [x] 2026-05-29 — Phase 5: Polish & Release — config.json, PhraseType rotation, README, CI, npm bin
+- [x] 2026-05-29 — Post-release: Responsive TUI refactor (createWidgets/applyLayout split, lpos fix, bottom-anchored speech bubble)
+- [x] 2026-05-29 — Post-release: Buddy ASCII art redesigned as floating heads (4–5 rows); box sized from template dimensions
 
 ## In Progress
-<!-- Nothing yet -->
+<!-- Nothing -->
 
 ## Blocked
-| Item | Blocker | Who can unblock |
-|------|---------|-----------------|
-| Phase 3 — AI Integration | Needs `GEMINI_API_KEY` for live testing | Developer (get free key at ai.google.dev) |
-
-## Next
-
-### Phase 1 — Foundation
-- [ ] `package.json` with scripts: `dev`, `build`, `lint`, `format`, `test`, `test:unit`, `test:integration`, `test:coverage`
-- [ ] `tsconfig.json` with strict mode + `@` → `src` path alias
-- [ ] ESLint config (TypeScript rules) + Prettier config
-- [ ] Vitest config with coverage thresholds matching CONSTITUTION.md
-- [ ] Scaffold full `src/` directory tree (empty files)
-- [ ] `Buddy` entity with `Buddy.create(metadata)` factory
-- [ ] All value objects: `BuddyTemplate`, `Mood` enum, `MoodState` type, `PhraseContext`, `PhraseType`, `BuddyMetadata`
-- [ ] `AIProvider`, `BuddyRepository`, and `TemplateRegistry` port interfaces
-- [ ] `LocalStorageAdapter` with atomic write + backup recovery
-- [ ] `schema.ts`: `StorageSchema` + `ConfigSchema` types
-- [ ] `BundledTemplateRegistry` adapter (reads from `src/assets/buddies/`)
-- [ ] Domain + storage adapter unit/integration tests
-- [ ] Animation PoC spike: neo-blessed multi-frame loop at 2fps with resize handler
-
-### Phase 2 — Core TUI
-- [ ] `AnimationLoop` component (setInterval, frame stepper, pause/resume)
-- [ ] `SpeechBubble` blessed Box with auto-clear timer
-- [ ] `StatusBar` component (mood indicator, buddy name/talent, offline flag)
-- [ ] `CompanionScreen` — full render pipeline: buddy box + speech bubble + status bar
-- [ ] Terminal width detection + compact mode (< 50 cols) + minimal mode (< 40 cols)
-- [ ] `process.on('exit'/'SIGINT'/'SIGTERM')` — screen destroy registered before first render
-- [ ] `LoadBuddyUseCase` wired into `CompanionScreen`
-
-### Phase 3 — AI Integration
-- [ ] `GeminiAdapter` implementing `AIProvider`
-- [ ] `gemini-system-prompt.ts` template function (personality-aware, dev-themed)
-- [ ] `FallbackPhraseStore` — 50+ hardcoded dev phrases
-- [ ] `GeneratePhraseUseCase` with fallback on network error
-- [ ] Offline indicator in `StatusBar`
-- [ ] Phrase history written to storage (last 10 per buddy)
-- [ ] API key resolution: env var → config.json → first-run prompt
-
-### Phase 4 — Buddy Lifecycle
-- [ ] `CreateBuddyUseCase` — AI generates metadata, random species assigned
-- [ ] `--new` CLI flag wired to `CreateBuddyUseCase`
-- [ ] `crash.ts` asset — all 5 mood states × frames finalized
-- [ ] `generic-dev.ts` asset — all 5 mood states × frames finalized
-- [ ] `ListBuddiesUseCase`
-- [ ] `BuddyPickerScreen` — scrollable list + animated preview panel + keyboard nav
-- [ ] `--list` CLI flag wired to `BuddyPickerScreen`
-- [ ] `DeleteBuddyUseCase` + `--delete <id>` flag with confirmation prompt
-- [ ] Welcome flow: no existing data → auto-trigger `--new`
-
-### Phase 5 — Polish & Release
-- [ ] Time-of-day mood transitions (SLEEPING late at night, HAPPY in morning)
-- [ ] `~/.ascii-buddy/config.json` — phraseIntervalSeconds, defaultBuddyId, provider
-- [ ] `PhraseType` rotation across sessions (not always same tone)
-- [ ] README with demo gif, install instructions, usage flags, GEMINI_API_KEY setup
-- [ ] `.npmignore` + `package.json` bin field for `npx ascii-buddy`
-- [ ] GitHub Actions CI: lint + test on PR
-- [ ] v1.0.0 tag + GitHub release
+<!-- Nothing -->
 
 ## Icebox
 - `--watch` mode: buddy reacts to git commits in current repo

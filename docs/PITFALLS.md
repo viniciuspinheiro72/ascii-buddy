@@ -44,6 +44,14 @@
 
 ---
 
+## blessed widget repositioning silently uses stale coordinates
+- **What happens:** After updating `widget.position.top/left/width/height` to move a widget, `screen.render()` still draws the widget at its old position.
+- **Why it happens:** blessed caches the last computed absolute coordinates in `widget.lpos`. On render it returns `lpos` directly without recalculating from `position`, so in-place position updates are ignored until the cache is cleared.
+- **How to avoid:** After mutating `position`, always clear the cache: `(widget as any).lpos = null`. See `SpeechBubble.reposition()` and `StatusBar.reposition()` for the canonical pattern.
+- **Discovered:** 2026-05-29 — speech bubble was invisible in compact mode after resize because lpos held full-mode coordinates.
+
+---
+
 ## Terminal too narrow breaks the layout
 - **What happens:** ASCII buddy art overflows or wraps, destroying the visual.
 - **Why it happens:** `process.stdout.columns` can be as low as 40 in split panes or CI terminals.

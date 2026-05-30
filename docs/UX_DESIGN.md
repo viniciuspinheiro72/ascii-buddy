@@ -6,10 +6,9 @@ Terminal-native minimalism: every pixel of ASCII art is intentional. The TUI fee
 ## Target Devices & Breakpoints
 | Terminal Width | Mode | Priority |
 |----------------|------|----------|
-| ≥ 80 columns | Full mode: buddy + speech bubble side by side | P0 |
-| 50–79 columns | Compact mode: buddy + speech bubble stacked | P0 |
-| < 50 columns | Minimal mode: buddy only, no speech bubble | P0 |
-| < 40 columns | Error state: "terminal too narrow" message | P1 |
+| ≥ 60 columns | Full mode: buddy + speech bubble side by side | P0 |
+| 40–59 columns | Compact mode: buddy above, speech bubble bottom-anchored | P0 |
+| < 40 columns | Minimal mode: buddy fills width, speech bubble bottom-anchored, footer hidden | P0 |
 
 ## Design System
 - **Component library:** neo-blessed primitives (Box, Text, Screen)
@@ -83,19 +82,27 @@ idle animation running
 
 ## Screen Layouts
 
-### CompanionScreen (Full Mode ≥ 80 cols)
+### CompanionScreen (Full Mode ≥ 60 cols)
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  ascii-buddy  [buddyName] · [talent]            [q: quit]       │
-├──────────────────────┬──────────────────────────────────────────┤
-│                      │  ╭────────────────────────────────────╮  │
-│   [ASCII BUDDY ART]  │  │  "Your type system is held         │  │
-│                      │  │   together by hope and duct tape." │  │
-│   (animation area)   │  ╰────────────────────────────────────╯  │
-│                      │                                          │
-│                      │  mood: idle  ·  last seen: just now      │
-└──────────────────────┴──────────────────────────────────────────┘
-  [n: new phrase]  [l: list buddies]  [q: quit]
+ ___        Your type system is held
+/O O\       together by hope and
+( >∆< )     duct tape.
+\___/
+
+[n] phrase   [q] quit
+```
+
+### CompanionScreen (Compact Mode 40–59 cols)
+```
+ ___
+/O O\
+( >∆< )
+\___/
+
+Your type system is held
+together by hope.
+
+[n] phrase   [q] quit
 ```
 
 ### BuddyPickerScreen (--list)
@@ -140,9 +147,12 @@ idle animation running
 
 ## ASCII Buddy Templates
 
+Buddy box is sized from `BuddyTemplate.width` and `height` at runtime:
+`boxW = template.width + 4`, `boxH = template.height + 3`.
+
 ### Species: Crash Bandicoot (`crash`)
 
-All frames are 9 lines × 11 chars. The companion area is a fixed 11×9 Box in blessed.
+Floating head. 4 lines × 9 chars (`width: 9, height: 4`).
 
 #### idle — frame 1 (eyes open)
 ```
@@ -150,11 +160,6 @@ All frames are 9 lines × 11 chars. The companion area is a fixed 11×9 Box in b
   /O O\
  ( >∆< )
   \___/
-  /| |\
- /_| |_\
-   | |
-  _|_|_
- (_/ \_)
 ```
 
 #### idle — frame 2 (blink)
@@ -163,37 +168,22 @@ All frames are 9 lines × 11 chars. The companion area is a fixed 11×9 Box in b
   /- -\
  ( >∆< )
   \___/
-  /| |\
- /_| |_\
-   | |
-  _|_|_
- (_/ \_)
 ```
 
-#### happy — frame 1 (arms up)
+#### happy — frame 1
 ```
    ___
   /^O^\
  ( >∆< )
   \___/
-\\ /| |\ //
- \/_| |_\/
-   | |
-  _|_|_
- (_/ \_)
 ```
 
-#### happy — frame 2 (arms higher)
+#### happy — frame 2
 ```
    ___
   /^∆^\
  ( >O< )
   \___/
-\\\\  |  ////
- \/_| |_\/
-   | |
-  _|_|_
- (_/ \_)
 ```
 
 #### talking — frame 1 (mouth closed)
@@ -202,11 +192,6 @@ All frames are 9 lines × 11 chars. The companion area is a fixed 11×9 Box in b
   /O O\
  ( >-< )
   \___/
-  /| |\
- /_| |_\
-   | |
-  _|_|_
- (_/ \_)
 ```
 
 #### talking — frame 2 (mouth open)
@@ -215,11 +200,6 @@ All frames are 9 lines × 11 chars. The companion area is a fixed 11×9 Box in b
   /O O\
  ( >o< )
   \___/
-  /| |\
- /_| |_\
-   | |
-  _|_|_
- (_/ \_)
 ```
 
 #### sad — frame 1
@@ -228,69 +208,46 @@ All frames are 9 lines × 11 chars. The companion area is a fixed 11×9 Box in b
   /; ;\
  ( >∆< )
   \___/
-  \| |/
- \_| |_/
-   | |
-  _|_|_
- (_/ \_)
 ```
 
 #### sleeping — frame 1
 ```
    ___
   /- -\
- ( >∆< )
+ ( >∆< )z
   \___/
-  /| |\
- /_| |_\
-   | |   z
-  _|_|_   z
- (_/ \_)   Z
 ```
 
-#### sleeping — frame 2 (z shift)
+#### sleeping — frame 2
 ```
    ___
   /- -\
  ( >∆< )
-  \___/
-  /| |\
- /_| |_\
-   | |    z
-  _|_|_  z
- (_/ \_) z
+  \___/ Z
 ```
 
 ---
 
 ### Species: Generic Dev (`generic-dev`)
 
-Minimalist hooded hacker silhouette. 9 lines × 11 chars.
+Floating head. 5 lines × 9 chars (`width: 9, height: 5`).
 
-#### idle — frame 1
+#### idle — frame 1 (eyes open)
 ```
   _____
  /     \
 | ^   ^ |
 |  \_/  |
  \_____/
-  |   |
-  |   |
- /|   |\
-/_|___|_\
 ```
 
-#### idle — frame 2 (cursor blink on screen in front)
+#### idle — frame 2 (blink)
 ```
   _____
  /     \
-| ^   ^ |
+| -   - |
 |  \_/  |
  \_____/
-  |   |
-  |___|
- /|   |\
-/_|___|_\
 ```
 
 #### talking — frame 1
@@ -300,10 +257,6 @@ Minimalist hooded hacker silhouette. 9 lines × 11 chars.
 | o   o |
 |  ---  |
  \_____/
-  |   |
-  |   |
- /|   |\
-/_|___|_\
 ```
 
 #### talking — frame 2
@@ -313,10 +266,6 @@ Minimalist hooded hacker silhouette. 9 lines × 11 chars.
 | o   o |
 |  ~~~  |
  \_____/
-  |   |
-  |   |
- /|   |\
-/_|___|_\
 ```
 
 #### happy — frame 1
@@ -324,12 +273,17 @@ Minimalist hooded hacker silhouette. 9 lines × 11 chars.
   _____
  /     \
 | *   * |
-|  \_/  |
+|  \∆/  |
  \_____/
-\ |   | /
-  |   |
- /|   |\
-/_|___|_\
+```
+
+#### happy — frame 2
+```
+  _____
+ /     \
+| *   * |
+|  /∆\  |
+ \_____/
 ```
 
 #### sad — frame 1
@@ -339,10 +293,6 @@ Minimalist hooded hacker silhouette. 9 lines × 11 chars.
 | .   . |
 |  /^\  |
  \_____/
-  |   |
-  |   |
- /|   |\
-/_|___|_\
 ```
 
 #### sleeping — frame 1
@@ -351,11 +301,16 @@ Minimalist hooded hacker silhouette. 9 lines × 11 chars.
  /     \
 | -   - |
 |  ___  |
- \_____/
-  |   |
-  |   |  z
- /|   |\ z
-/_|___|_\ Z
+ \_____/z
+```
+
+#### sleeping — frame 2
+```
+  _____
+ /     \
+| -   - |
+|  ___  |
+ \_____/ Z
 ```
 
 ---
@@ -365,3 +320,4 @@ Minimalist hooded hacker silhouette. 9 lines × 11 chars.
 - Windows CMD is not supported; WSL2 is supported
 - Some terminal emulators render box-drawing characters at different widths — use ASCII-only characters in buddy art (no Unicode box chars inside frames)
 - Speech bubble width is capped at 40 chars to ensure it fits in compact mode
+- In compact/minimal mode the speech bubble is bottom-anchored so it is always visible regardless of terminal height
