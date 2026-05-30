@@ -25,16 +25,27 @@ export class SpeechBubble {
       height: opts.height,
       content: "",
       tags: false,
-      border: { type: "line" },
-      style: {
-        border: { fg: "white" },
-        fg: "white",
-        bg: "black",
-      },
-      padding: { left: 1, right: 1, top: 0, bottom: 0 },
+      style: { fg: "white" },
       wrap: true,
       hidden: true,
     });
+  }
+
+  reposition(opts: {
+    top?: number;
+    bottom?: number;
+    left: number | string;
+    width: number | string;
+    height: number;
+  }): void {
+    const pos = (this.box as any).position as Record<string, number | string | undefined>;
+    pos["top"] = opts.top;
+    pos["bottom"] = opts.bottom;
+    pos["left"] = opts.left;
+    pos["width"] = opts.width;
+    pos["height"] = opts.height;
+    // Clear blessed's cached absolute coordinates so it recomputes on next render
+    (this.box as any).lpos = null;
   }
 
   show(text: string, autoClearMs = AUTO_CLEAR_MS): void {

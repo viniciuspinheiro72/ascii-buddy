@@ -4,10 +4,10 @@
      It is the first doc read each session to restore project state. -->
 
 ## Current Focus
-All 5 phases complete — project is at v0.1.0 release state.
+Post-v0.1.0 UI polish — responsive TUI refactor and head-only ASCII art redesign.
 
 ## In Progress
-- Nothing — all phases merged to main
+- Nothing — changes committed to main
 
 ## Blockers
 - None
@@ -24,10 +24,15 @@ All 5 phases complete — project is at v0.1.0 release state.
 - 2026-05-29 — `--delete` reuses BuddyPickerScreen (press `d`) rather than a separate TUI flow
 - 2026-05-29 — SLEEPING triggers after 10 min of no keypress (not phrase interval); any keypress wakes
 - 2026-05-29 — phraseIntervalSeconds defaults to 30s, configurable via config.json
+- 2026-05-29 — CompanionScreen split into createWidgets()/applyLayout() for live resize without screen rebuild
+- 2026-05-29 — Both species redesigned as floating heads only (4-5 rows); box dimensions derived from template
 
 ## Recent Context
 - 2026-05-28 — Full documentation suite initialized
 - 2026-05-29 — Phase 1–5 complete and merged; 67 tests passing, CI green
+- 2026-05-29 — Responsive TUI refactor: createWidgets()/applyLayout() split, lpos cache cleared on reposition, speech bubble bottom-anchored in compact/minimal modes
+- 2026-05-29 — Buddy ASCII art redesigned as floating heads; BUDDY_BOX_WIDTH/HEIGHT now derived from template.width/height
+- 2026-05-29 — UI stripped to bare terminal: removed all borders, header, status bar; speech is plain text beside/below buddy; only key hints remain as chrome
 
 ## Open Questions
 - None blocking v0.1.0

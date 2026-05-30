@@ -30,6 +30,15 @@ export class StatusBar {
     });
   }
 
+  reposition(opts: { bottom: number; left: number | string; width: number | string }): void {
+    const pos = (this.box as any).position as Record<string, number | string | undefined>;
+    pos["bottom"] = opts.bottom;
+    pos["left"] = opts.left;
+    pos["width"] = opts.width;
+    pos["top"] = undefined;
+    (this.box as any).lpos = null;
+  }
+
   update(mood: Mood, buddyName: string, lastSeenAt: Date, offline: boolean): void {
     const moodLabel = MOOD_LABEL[mood];
     const elapsed = formatElapsed(lastSeenAt);

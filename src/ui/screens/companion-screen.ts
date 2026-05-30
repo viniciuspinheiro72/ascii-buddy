@@ -5,38 +5,42 @@ import { moodToState } from "@/domain/value-objects/mood.js";
 import type { BuddyTemplate } from "@/domain/value-objects/buddy-template.js";
 import { AnimationLoop, MOOD_FPS } from "@/ui/components/animation-loop.js";
 import { SpeechBubble } from "@/ui/components/speech-bubble.js";
-import { StatusBar } from "@/ui/components/status-bar.js";
 import { logger } from "@/infra/logger.js";
 import type { GeneratePhraseResult } from "@/application/use-cases/generate-phrase.use-case.js";
 
-const BUDDY_BOX_WIDTH = 17;
 const THINKING_DELAY_MS = 500;
 const MIN_WIDTH_FULL = 60;
-const MIN_WIDTH_RENDER = 40;
+const MIN_WIDTH_COMPACT = 40;
 const MOOD_LINGER_MS = 5_000;
 const SLEEP_IDLE_MS = 10 * 60 * 1000;
 const MOOD_CHECK_INTERVAL_MS = 60_000;
+
+type LayoutMode = "full" | "compact" | "minimal";
 
 export class CompanionScreen {
   private screen!: blessed.Widgets.Screen;
   private buddyBox!: blessed.Widgets.BoxElement;
   private speechBubble!: SpeechBubble;
-  private statusBar!: StatusBar;
   private animationLoop!: AnimationLoop;
   private phraseTimer: ReturnType<typeof setInterval> | null = null;
   private moodCheckTimer: ReturnType<typeof setInterval> | null = null;
   private currentMood: Mood;
-  private isOffline = false;
   private destroyed = false;
   private lastActivityAt = new Date();
 
+  // frame dimensions (no border offset)
+  private readonly boxW: number;
+  private readonly boxH: number;
+
   constructor(
-    private buddy: Buddy,
+    buddy: Buddy,
     private readonly template: BuddyTemplate,
     private readonly getPhrase: () => Promise<GeneratePhraseResult>,
     private readonly phraseIntervalMs: number = 30_000,
   ) {
     this.currentMood = buddy.mood;
+    this.boxW = template.width + 2; // 1 left padding + 1 right gap
+    this.boxH = template.height;
   }
 
   open(): void {
@@ -53,7 +57,8 @@ export class CompanionScreen {
       process.exit(0);
     });
 
-    this.buildLayout();
+    this.createWidgets();
+    this.applyLayout();
     this.bindKeys();
     this.startAnimation();
     this.schedulePhraseLoop();
@@ -61,7 +66,6 @@ export class CompanionScreen {
 
     this.screen.render();
 
-    // Show first phrase shortly after open
     setTimeout(() => {
       void this.triggerPhrase();
     }, 3_000);
@@ -82,126 +86,78 @@ export class CompanionScreen {
     this.screen.destroy();
   }
 
-  private buildLayout(): void {
-    const width = this.screen.width as number;
-    const showSpeech = width >= MIN_WIDTH_FULL;
-
-    if (width < MIN_WIDTH_RENDER) {
-      this.buildMinimalLayout();
-      return;
-    }
-
-    // Header
-    blessed.box({
+  private createWidgets(): void {
+    this.buddyBox = blessed.box({
       parent: this.screen,
       top: 0,
       left: 0,
-      width: "100%",
-      height: 1,
-      content: ` ascii-buddy · ${this.buddy.name} — ${this.buddy.talent}   [n: phrase]  [q: quit]`,
-      style: { fg: "cyan", bg: "black" },
-      tags: false,
-    });
-
-    // Buddy art box
-    this.buddyBox = blessed.box({
-      parent: this.screen,
-      top: 1,
-      left: 0,
-      width: BUDDY_BOX_WIDTH,
-      height: 13,
+      width: this.boxW,
+      height: this.boxH,
       content: "",
       tags: false,
-      border: { type: "line" },
-      style: { border: { fg: "cyan" }, fg: "white", bg: "black" },
-      padding: { left: 1, right: 0, top: 1, bottom: 0 },
+      style: { fg: "white" },
+      padding: { left: 1, right: 0, top: 0, bottom: 0 },
     });
 
-    // Speech bubble (right panel, full mode only)
-    if (showSpeech) {
-      this.speechBubble = new SpeechBubble(this.screen, {
-        top: 2,
-        left: BUDDY_BOX_WIDTH + 1,
-        width: `100%-${BUDDY_BOX_WIDTH + 2}`,
-        height: 6,
-      });
-    } else {
-      // Compact mode: speech stacked below buddy
-      this.speechBubble = new SpeechBubble(this.screen, {
-        top: 15,
-        left: 0,
-        width: "100%",
-        height: 5,
-      });
-    }
-
-    // Status bar
-    this.statusBar = new StatusBar(this.screen, {
-      bottom: 1,
-      left: showSpeech ? BUDDY_BOX_WIDTH + 1 : 0,
-      width: showSpeech ? `100%-${BUDDY_BOX_WIDTH + 2}` : "100%",
+    this.speechBubble = new SpeechBubble(this.screen, {
+      top: 1,
+      left: this.boxW + 1,
+      width: `100%-${this.boxW + 2}`,
+      height: this.boxH,
     });
 
-    // Footer key hints
     blessed.box({
       parent: this.screen,
       bottom: 0,
       left: 0,
       width: "100%",
       height: 1,
-      content: " [n] new phrase   [q] quit",
-      style: { fg: "gray", bg: "black" },
+      content: " [n] phrase   [q] quit",
       tags: false,
+      style: { fg: "gray" },
     });
 
-    this.updateStatusBar();
-
-    // Rebuild on resize (debounced 150ms — PITFALLS.md)
+    // Debounced resize — reposition in-place, no screen rebuild (PITFALLS.md)
     this.screen.on("resize", () => {
       setTimeout(() => {
         if (!this.destroyed) {
-          this.screen.destroy();
-          this.destroyed = false;
-          this.buildLayout();
+          this.applyLayout();
           this.screen.render();
         }
       }, 150);
     });
   }
 
-  private buildMinimalLayout(): void {
-    blessed.box({
-      parent: this.screen,
-      top: 0,
-      left: 0,
-      width: "100%",
-      height: 1,
-      content: " ascii-buddy  [q: quit]",
-      style: { fg: "cyan" },
-      tags: false,
-    });
+  private applyLayout(): void {
+    const width = this.screen.width as number;
+    const mode = this.resolveLayoutMode(width);
 
-    this.buddyBox = blessed.box({
-      parent: this.screen,
-      top: 1,
-      left: 0,
-      width: "100%",
-      height: 13,
-      content: "",
-      tags: false,
-      border: { type: "line" },
-      style: { border: { fg: "cyan" }, fg: "white", bg: "black" },
-      padding: { left: 1, right: 0, top: 1, bottom: 0 },
-    });
+    // Buddy box: fill width in minimal mode, fixed otherwise
+    const buddyPos = (this.buddyBox as any).position as Record<string, number | string | undefined>;
+    buddyPos["width"] = mode === "minimal" ? "100%" : this.boxW;
+    (this.buddyBox as any).lpos = null;
 
-    // Stub implementations so class invariants hold
-    this.speechBubble = new SpeechBubble(this.screen, {
-      top: 15,
-      left: 0,
-      width: "100%",
-      height: 3,
-    });
-    this.statusBar = new StatusBar(this.screen, { bottom: 0, left: 0, width: "100%" });
+    if (mode === "full") {
+      // Speech to the right of buddy, vertically centred
+      this.speechBubble.reposition({
+        top: 1,
+        left: this.boxW + 1,
+        width: `100%-${this.boxW + 2}`,
+        height: this.boxH,
+      });
+    } else if (mode === "compact") {
+      // Speech stacked below buddy, anchored to bottom
+      this.speechBubble.reposition({ bottom: 2, left: 0, width: "100%", height: 3 });
+    } else {
+      // Minimal: speech near bottom, footer stays
+      this.speechBubble.reposition({ bottom: 1, left: 0, width: "100%", height: 2 });
+    }
+  }
+
+  private resolveLayoutMode(width: number): LayoutMode {
+    if (width >= MIN_WIDTH_FULL) return "full";
+    if (width >= MIN_WIDTH_COMPACT) return "compact";
+    return "minimal";
   }
 
   private bindKeys(): void {
@@ -215,7 +171,6 @@ export class CompanionScreen {
       void this.triggerPhrase();
     });
 
-    // Any keypress resets the sleep idle timer
     this.screen.on("keypress", () => {
       this.recordActivity();
       if (this.currentMood === Mood.SLEEPING) {
@@ -239,11 +194,9 @@ export class CompanionScreen {
     const frames = this.template.frames[moodState];
     const fps = MOOD_FPS[mood];
     this.animationLoop.start(frames, fps);
-    this.updateStatusBar();
   }
 
   private async triggerPhrase(): Promise<void> {
-    // Wake from sleep if needed
     if (this.currentMood === Mood.SLEEPING) {
       this.setMood(Mood.IDLE);
     }
@@ -255,18 +208,13 @@ export class CompanionScreen {
 
     try {
       const { phrase, offline } = await this.getPhrase();
-      this.isOffline = offline;
       this.speechBubble.show(phrase);
-      this.updateStatusBar();
 
-      // HAPPY after online phrase, SAD after offline — both linger then return to IDLE
       const nextMood = offline ? Mood.SAD : Mood.HAPPY;
       this.setMood(nextMood);
     } catch (err) {
       logger.error(`Failed to get phrase: ${String(err)}`);
-      this.isOffline = true;
       this.speechBubble.show("...I got nothing. Try again.");
-      this.updateStatusBar();
       this.setMood(Mood.SAD);
     }
 
@@ -296,10 +244,6 @@ export class CompanionScreen {
 
   private recordActivity(): void {
     this.lastActivityAt = new Date();
-  }
-
-  private updateStatusBar(): void {
-    this.statusBar.update(this.currentMood, this.buddy.name, this.buddy.lastSeenAt, this.isOffline);
   }
 }
 
